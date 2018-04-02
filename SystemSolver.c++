@@ -126,7 +126,7 @@ int main (){
 		}
 
 	} else {
-		cout << "No solutions; this system of equation is inconsistent." << endl;
+		cout << "No solutions; this system of equations is inconsistent." << endl;
 	}
 	
 	return 0;
