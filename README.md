@@ -2,8 +2,10 @@
 Projects employing Gaussian Elimination
 
 Balancer.c++
-- Enter a chemical equation lacking coefficients into the command line  
+- Enter a chemical equation lacking coefficients into the command line
+
 ! Currently lacks error checking and support for parentheses  
+
 Ex.  
 input: SiO2 + HF > SiF4 + H2O  
 output: 1SiO2 + 4HF > SiF4 + H2O  
