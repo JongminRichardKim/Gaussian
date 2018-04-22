@@ -8,7 +8,7 @@ Balancer.c++
 
 Ex.  
 input: SiO2 + HF > SiF4 + H2O  
-output: 1SiO2 + 4HF > SiF4 + H2O  
+output: 1SiO2 + 4HF > SiF4 + 2H2O  
 
 // Problem obtained from https://www.northallegheny.org/cms/lib/PA01001119/Centricity/Domain/1083/balancingpractice.pdf
 
