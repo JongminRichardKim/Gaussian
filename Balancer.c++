@@ -36,12 +36,11 @@ int main (){
 	cout << "= Chemical Equation Balancer =" << endl;
 	string s = "";
 
-	Element* found_element[213] = {NULL};
-	vector<vector<float>*> matrix;
-	vector<float> augment;
-	int num_columns = 0;
-	int next_row = 0;
 
+
+	Element* found_element[213] = {NULL};
+	AugmentedMatrix matrix;
+	int next_row = 0;
 
 	while(s != "Exit" && s != "exit"){
 		cout << "Enter an equation"
@@ -55,30 +54,32 @@ int main (){
 		string item;
 		string before;
 		string after;
+
 		int i = 0;
 		while (getline(ss, item, '>')) {
-			if(i == 0) before = item;
+			if(i == 0) before = item; // first item becomes what goes into the reaction
 			else if (i == 1) after = item;
 			++i;
 		}
+
 		if(s != "Exit" && s != "exit"){
 			if(i == 2) {
 				// Each row represents an element
 				// Each column represents a coefficient
+
 				std::stringstream ss2(before);
 				string item2;
-				vector<string> before_items;
-				vector<string> after_items;
-
+				vector<string> reactants;
+				
 				while (getline(ss2, item2, '+')) {
-					before_items.push_back(item2);
-					int col_index = num_columns++;
-					addColumn(matrix);
+					reactants.push_back(item2);
+					int col_index = matrix.add_column();
 					
 					int k = 0;
 					int length = item2.length();
 					
 					while(k < length) {
+						// -- Getting the symbol and its associated Subscript
 						string symbol = "";
 						int subscript = 1;
 						
@@ -86,13 +87,13 @@ int main (){
 						++k;
 						
 						if(isLower(item2[k])) {
+
 							symbol += item2[k];
 							++k;
 						}
 						
 						int h = k;
 						while(h < length && !isUpper(item2[h])) {
-							// If it is at any point NaN, this equation is invalid
 							++h;
 						}
 
@@ -103,15 +104,17 @@ int main (){
 						}
 						k = h;
 						
+						// -- At this point, symbol should be the chemical element and subscript should be the number
+
 						int hash_num = hash(symbol);
 						Element *e;
 						if(found_element[hash_num] == NULL) {
 							e = new Element(symbol, next_row, NULL);
 							found_element[hash_num] = e;
 							++next_row;
-							vector<float>* new_row = new vector<float>(num_columns);
+
+							vector<float>* new_row = new vector<float>(matrix.num_columns());
 							matrix.push_back(new_row);
-							augment.push_back(0);
 						} else {
 							e = found_element[hash_num];
 							Element *prev;
@@ -119,27 +122,28 @@ int main (){
 								prev = e;
 								e = e->next;
 							}
+							// The case where we didn't find it in the linked list
 							if(e == NULL) {
 								e = new Element(symbol, next_row, NULL);
 								prev->next = e;
 								++next_row;
-								vector<float>* new_row = new vector<float>(num_columns);
+
+								vector<float>* new_row = new vector<float>(matrix.num_columns());
 								matrix.push_back(new_row);
-								augment.push_back(0);
 							}
 						}
-						(*matrix[e->row])[col_index] += subscript;
+						matrix[e->row][col_index] += subscript;
 					}
 				}
 
 				std::stringstream ss3(after);
 				string item3;
+				vector<string> products;
 				
 				while (getline(ss3, item3, '+')) {
-					after_items.push_back(item3);
-					int col_index = num_columns++;
-					addColumn(matrix);
-					
+					products.push_back(item3);
+					int col_index = matrix.add_column();
+				
 					int k = 0;
 					int length = item3.length();
 					
@@ -162,17 +166,20 @@ int main (){
 							std::stringstream parse3(sub_string);
 							parse3 >> subscript;
 						}
+
 						k = h;
 						subscript *= -1;
+
 						int hash_num = hash(symbol);
 						Element *e;
 						if(found_element[hash_num] == NULL) {
+							// Wait, that shouldn't be right; an element that wasn't in the reactants?! Throw an exception!
 							e = new Element(symbol, next_row, NULL);
 							found_element[hash_num] = e;
 							++next_row;
-							vector<float>* new_row = new vector<float>(num_columns);
+
+							vector<float>* new_row = new vector<float>(matrix.num_columns());
 							matrix.push_back(new_row);
-							augment.push_back(0);
 						} else {
 							e = found_element[hash_num];
 
@@ -182,54 +189,69 @@ int main (){
 								e = e->next;
 							}
 							if(e == NULL) {
+								// Again, this isn't right!
 								e = new Element(symbol, next_row, NULL);
 								prev->next = e;
 								++next_row;
-								vector<float>* new_row = new vector<float>(num_columns);
+
+								vector<float>* new_row = new vector<float>(matrix.num_columns());
 								matrix.push_back(new_row);
-								augment.push_back(0);
 							}
 						}
-						(*matrix[e->row])[col_index] += subscript;
+						matrix[e->row][col_index] += subscript;
 					}
 				}
 
-				int solutions = numSolutions(matrix, augment, num_columns);
+				int solutions = matrix.num_solutions();
 				vector<float> coefficients;
 				float min = 1.0f;
 
-				if(solutions != 0){
-					for(int j = 0; j < before_items.size(); ++j){
+				//matrix.print_matrix();
+
+				if(solutions == 2){
+					for(int j = 0; j < reactants.size(); ++j){
 						bool found = false;
-						for(int k = 0; k < matrix.size() && !found; ++k) {
+						for(int k = 0; k < matrix.num_rows() && !found; ++k) {
 							bool leading_coefficient = true;
 							for(int l = 0; l < j && leading_coefficient; ++l) {
-								if((*matrix[k])[l] != 0.0f) leading_coefficient = false;
+								if(matrix[k][l] != 0.0f) leading_coefficient = false;
 							}
-							if(leading_coefficient && (*matrix[k])[j] == 1) {
+							if(leading_coefficient && matrix[k][j] == 1) {
 								found = true;
-								coefficients.push_back(augment[k]);
-								float rem = augment[k] - floor(augment[k]);
+								coefficients.push_back(matrix.get_augment(k));
+								float rem = matrix.get_augment(k) - floor(matrix.get_augment(k));
 								if(fabs(rem) > 0.0001f && rem < min) min = rem;
 							}
 						}
 					}
 
-					for(int j = 0; j < after_items.size(); ++j){
+					for(int j = 0; j < products.size(); ++j){
 						bool found = false;
-						for(int k = 0; k < matrix.size() && !found; ++k) {
+						for(int k = 0; k < matrix.num_rows() && !found; ++k) {
 							bool leading_coefficient = true;
-							for(int l = 0; l < (j + before_items.size()) && leading_coefficient; ++l) {
-								if((*matrix[k])[l] != 0.0f) leading_coefficient = false;
+							for(int l = 0; l < (j + reactants.size()) && leading_coefficient; ++l) {
+								if(matrix[k][l] != 0.0f) leading_coefficient = false;
 							}
-							if(leading_coefficient && (*matrix[k])[j+ before_items.size()] == 1) {
+							if(leading_coefficient && matrix[k][j+ reactants.size()] == 1) {
 								found = true;
-								coefficients.push_back(augment[k]);
-								float rem = augment[k] - floor(augment[k]);
+								coefficients.push_back(matrix.get_augment(k));
+								float rem = matrix.get_augment(k) - floor(matrix.get_augment(k));
 								if(fabs(rem) > 0.0001f && rem < min) min = rem;
 							}
 						}
 					}
+
+					/*
+					Currently, the coefficients are (usually) a group of mixed fractions.
+					To convert them into the smallest possible group of whole numbers:
+					1. Look for the smallest non-zero fraction part of the group of numbers
+					 ex. 1, 1.75, 1.5, 1; the smallest non-zero fraction part is .5
+					2. Divide by said fraction part
+					 ex. 2, 3.5, 3, 2
+					3. Repeat until they are all whole numbers
+					 ex. Now, the smallest fraction part is .5, so divide by .5
+					     4, 7, 6, 4
+					//*/
 					while(min != 1.0f){
 						float divisor = min;
 						float temp = 1.0f;
@@ -240,15 +262,28 @@ int main (){
 						}
 						min = temp;
 					}
+
 					cout << "	";
-					for(int k = 0; k < before_items.size(); ++k)  {
-						cout << coefficients[k] << before_items[k];
-						if(k!= before_items.size()-1) cout << " + ";
+
+					// Print the
+					for(int k = 0; k < reactants.size(); ++k)  {
+						if (coefficients[k] == 1) {
+							cout << reactants[k];
+						} else {
+							cout << coefficients[k] << reactants[k];
+						}
+						if(k!= reactants.size()-1) cout << " + ";
+
 					}
 					cout << " > ";
-					for(int k = 0; k < after_items.size(); ++k)  {
-						cout << coefficients[k + before_items.size()] << after_items[k];
-						if(k!= after_items.size()-1) cout << " + ";
+					for(int k = 0; k < products.size(); ++k)  {
+						if (coefficients[k + reactants.size()] == 1) {
+							cout << products[k];
+						} else {
+							cout << coefficients[k + reactants.size()] << products[k];
+						}
+						
+						if(k!= products.size()-1) cout << " + ";
 					}
 
 					cout << endl;
@@ -257,9 +292,7 @@ int main (){
 				}
 
 				// remember to delete everything in the matrix
-				matrix.clear();
-				augment.clear();
-				num_columns = 0;
+				// matrix.clear();
 				next_row = 0;
 				for(int j = 0; j < 213; ++j) {
 					if(found_element != NULL) {
@@ -267,8 +300,6 @@ int main (){
 						found_element[j] = NULL;
 					}
 				}
-				
-				//*/
 			} else {
 				cout << "Invalid Equation" << endl;
 			}

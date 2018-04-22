@@ -19,8 +19,7 @@ int main (){
 	fill_n(table, 26, -1);
 	vector<char> variables;
 
-	vector<vector<float>*> matrix;
-	vector<float> augment;
+	AugmentedMatrix matrix;
 	int next_col = 0; // also functions as the number of columns
 
 	while(s != "Exit" && s != "exit"){
@@ -48,13 +47,13 @@ int main (){
 				// For now, after is a single integer,
 				// before is an expression with only + or - and no constants
 				vector<float>* new_row = new vector<float>(next_col);
-				matrix.push_back(new_row);
-
+				
 				float value;
 
 				std::stringstream parse2(after);
 				parse2 >> value;
-				augment.push_back(value);
+				
+				matrix.push_back(new_row, value);
 
 				int length = before.length();
 				int i = 0; // beginning parts of the substring
@@ -88,10 +87,10 @@ int main (){
 					if(table[hash(character)] == -1) {
 						table[hash(character)] = next_col;
 						++next_col;
-						addColumn(matrix);
+						matrix.add_column();
 						variables.push_back(character);
 					}
-					(*matrix[matrix.size()-1])[table[hash(character)]] += coefficient;
+					matrix[matrix.num_rows()-1][table[hash(character)]] += coefficient;
 					
 					++i;
 				}
@@ -99,11 +98,11 @@ int main (){
 				cout << "Invalid Equation or Command" << endl;
 			}
 		} else {
-			if(s == "Print" || s == "print") printMatrix(matrix, augment, next_col);
+			if(s == "Print" || s == "print") matrix.print_matrix();
 		}
 	}
 	
-	int solutions = numSolutions(matrix, augment, next_col);
+	int solutions = matrix.num_solutions();
 	if(solutions != 0){
 		if (solutions > 1) {
 			cout << "Many Solutions. One Possible Solution:" << endl;
@@ -113,13 +112,13 @@ int main (){
 		for(int i = 0; i < variables.size(); ++i){
 			char var = variables[i];
 			bool found = false;
-			for(int j = 0; j < matrix.size() && !found; ++j){
+			for(int j = 0; j < matrix.num_rows() && !found; ++j){
 				bool leading_coefficient = true;
 				for(int k = 0; k < table[hash(var)] && leading_coefficient; ++k) {
-					if((*matrix[j])[k] != 0) leading_coefficient = false;
+					if(matrix[j][k] != 0) leading_coefficient = false;
 				}
-				if(leading_coefficient && (*matrix[j])[table[hash(var)]] == 1){
-					cout << " " << var << " = " << augment[j] << endl;
+				if(leading_coefficient && matrix[j][table[hash(var)]] == 1){
+					cout << " " << var << " = " << matrix.get_augment(j) << endl;
 					found = true;
 				}
 			}
